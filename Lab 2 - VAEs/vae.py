@@ -126,6 +126,9 @@ class CVAE(nn.Module):
         ############################################################################################
         # Replace "pass" statement with your code
         self.hidden_dim = 400
+        self.mu_layer = nn.Linear(self.hidden_dim, latent_size)
+        self.logvar_layer = nn.Linear(self.hidden_dim, latent_size)
+
         self.encoder = nn.Sequential(
             nn.Linear(input_size + num_classes, self.hidden_dim),
             nn.ReLU(),
@@ -140,6 +143,7 @@ class CVAE(nn.Module):
         # latent space (N, Z + C) to the estimated images of shape (N, 1, H, W).                   #
         ############################################################################################
         # Replace "pass" statement with your code
+
         self.decoder = nn.Sequential(
             nn.Linear(latent_size + num_classes, self.hidden_dim),
             nn.ReLU(),
@@ -179,6 +183,7 @@ class CVAE(nn.Module):
         # (3) Pass concatenation of z and one hot vectors through the decoder to resconstruct x    #
         ############################################################################################
         # Replace "pass" statement with your code
+
         concatenated_input = torch.cat((x.view(-1, self.input_size), c), dim=1)
         hidden = self.encoder(concatenated_input)
         mu = self.mu_layer(hidden)
@@ -248,8 +253,8 @@ def loss_function(x_hat, x, mu, logvar):
     # TODO: Compute negative variational lowerbound loss as described in the notebook              #
     ################################################################################################
     # Replace "pass" statement with your code
-    print("size of x_hat: ", x_hat.size())
-    print("size of x: ", x.size())
+    # print("size of x_hat: ", x_hat.size())
+    # print("size of x: ", x.size())
     loss = F.binary_cross_entropy(x_hat, x, reduction='sum')
     loss += -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     loss /= x.size(0)
