@@ -9,16 +9,19 @@ class ResConvBlock(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
+        print("Hello")
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_channels, out_channels, 3, 1, 1),
             nn.BatchNorm2d(out_channels),
             nn.GELU(),
         )
+        print("hello2")
         self.conv2 = nn.Sequential(
             nn.Conv2d(out_channels, out_channels, 3, 1, 1),
             nn.BatchNorm2d(out_channels),
             nn.GELU(),
         )
+        print("hello3")
 
     def forward(self, x):
         x1 = self.conv1(x)
@@ -118,13 +121,13 @@ class ConditionalUnet(nn.Module):
         self.downblock2 = UnetDown(n_feat, 2 * n_feat)
         self.to_vec = nn.Sequential(nn.AvgPool2d(7), nn.GELU())
 
-
         # up path for decoding
         self.upblock0 = nn.Sequential(
             nn.ConvTranspose2d(2 * n_feat, 2 * n_feat, 7, 7),
             nn.GroupNorm(8, 2 * n_feat),
             nn.ReLU(),
         )
+    
         self.upblock1 = UnetUp(4 * n_feat, n_feat)
         self.upblock2 = UnetUp(2 * n_feat, n_feat)
         self.outblock = nn.Sequential(
@@ -139,7 +142,7 @@ class ConditionalUnet(nn.Module):
         self.fusion2 = FusionBlock(6 * self.n_feat, 2 * self.n_feat)
         self.fusion3 = FusionBlock(3 * self.n_feat, self.n_feat)
         self.fusion4 = FusionBlock(3 * self.n_feat, self.n_feat)
-
+    
     def forward(self, x, t, c):
         '''
         Inputs:
@@ -149,7 +152,7 @@ class ConditionalUnet(nn.Module):
         '''
         t, c = t.float(), c.float()
 
-        # time step embedding
+    # time step embedding
         temb1 = self.timeembed1(t).view(-1, self.n_feat * 2, 1, 1) # 256
         temb2 = self.timeembed2(t).view(-1, self.n_feat, 1, 1) # 128
 
@@ -157,20 +160,67 @@ class ConditionalUnet(nn.Module):
         cemb1 = self.conditionembed1(c).view(-1, self.n_feat * 2, 1, 1) # 256
         cemb2 = self.conditionembed2(c).view(-1, self.n_feat, 1, 1) # 128
 
-        # ==================================================== #
-        # YOUR CODE HERE:
-        #   Define the process of computing the output of a 
-        #   this network given the input x, t, and c.
-        #   The input x, t, c indicate the input image, time step
-        #   and the condition respectively.
-        # A potential format is shown below, feel free to use your own ways to design it.
-        # down0 = 
-        # down1 =
-        # down2 = 
-        # up0 = 
-        # up1 = 
-        # up2 = 
-        # out = self.outblock(torch.cat((up2, down0), dim = 1))
-        # ==================================================== #
+        # Down path
+        down0 = self.init_conv(x)
+        down1 = self.downblock1(down0)
+        fusion1 = self.fusion1(down1, temb2, cemb2)
+        down2 = self.downblock2(fusion1)
+        fusion2 = self.fusion2(down2, temb1, cemb1)
+        to_vec = self.to_vec(fusion2)
+        up0 = self.upblock0(to_vec)
+        up1 = self.upblock1(up0, fusion2)
+        fusion3 = self.fusion3(up1, temb2, cemb2)
+        up2 = self.upblock2(fusion3, fusion1)
+        fusion4 = self.fusion4(up2, temb2, cemb2)
+        out = self.outblock(torch.cat((fusion4, down0), dim = 1))
+
+        return out
+
+    # def forward(self, x, t, c):
+    #     '''
+    #     Inputs:
+    #         x: input images, with size (B,1,28,28)
+    #         t: input time steps, with size (B,1,1,1)
+    #         c: input conditions (one-hot encoded labels), with size (B,10)
+    #     '''
+    #     t, c = t.float(), c.float()
+
+    #     # time step embedding
+    #     temb1 = self.timeembed1(t).view(-1, self.n_feat * 2, 1, 1) # 256
+    #     temb2 = self.timeembed2(t).view(-1, self.n_feat, 1, 1) # 128
+
+    #     # condition embedding
+    #     cemb1 = self.conditionembed1(c).view(-1, self.n_feat * 2, 1, 1) # 256
+    #     cemb2 = self.conditionembed2(c).view(-1, self.n_feat, 1, 1) # 128
+
+    #     # ==================================================== #
+    #     # YOUR CODE HERE:
+    #     #   Define the process of computing the output of a 
+    #     #   this network given the input x, t, and c.
+    #     #   The input x, t, c indicate the input image, time step
+    #     #   and the condition respectively.
+    #     # A potential format is shown below, feel free to use your own ways to design it.
+    #     # down0 = 
+    #     # down1 =
+    #     # down2 = 
+    #     # up0 = 
+    #     # up1 = 
+    #     # up2 = 
+    #     # out = self.outblock(torch.cat((up2, down0), dim = 1))
+    #     print(1)
+    #     down0 = self.init_conv
+    #     print(2)
+    #     down1 = self.downblock1(down0)
+    #     print(3)
+    #     down2 = self.downblock2(down1)
+    #     print(4)
+
+    #     up1 = self.upblock0(down2)
+    #     print(5)
+    #     up2 = self.upblock1(up1)
+    #     print(6)
+    #     out  = self.outblock(torch.cat((up2,down0), dim = 1))
+    #     print(7)
+    #     # ==================================================== #
 
         return out
