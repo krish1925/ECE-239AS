@@ -21,6 +21,8 @@ class ReplayBufferDQN:
             done (bool): whether the episode is done
         """
         self.buffer.append((state,action,reward,next_state,done))
+
+        # forget earliest memory                          
         if len(self.buffer) > self.buffer_size:
             self.buffer.pop(0)
         
@@ -49,7 +51,9 @@ class ReplayBufferDQN:
             rewards.append(reward)
             next_states.append(torch.from_numpy(next_state))
             dones.append(done)
-        
+            
+        # each state is [n_c, h, w]
+        # stack them to get shape [batch_size,n_c,h,w]
         states = torch.stack(states).to(device).float()
         actions = torch.tensor(actions).to(device).long()
         rewards = torch.tensor(rewards).to(device).float()

@@ -42,11 +42,31 @@ class EnvWrapper(gym.Wrapper):
     
     
     def reset(self, **kwargs):
-        # ==== TODO: Implement the reset function ====
-        raise NotImplementedError
+        # call the enviroment reset
+        s, info = self.env.reset(**kwargs)
+
+        # Do nothing for the next self.initial_no_op` steps
+        for i in range(self.initial_no_op):
+            s, r, terminated, truncated, info = self.env.step(self.do_nothing_action)
+        
+        # Crop and resize the frame
+        s = preprocess(s)
+
+        # stack the frames to form the initial state
+        self.stacked_state = np.tile(s, (self.stack_frames, 1, 1))  # [
+        return self.stacked_state, info
     
     def step(self, action):
-        # ==== TODO: Implement the step function ====
-        raise NotImplementedError
+        reward = 0
+        for _ in range(self.skip_frames):
+            s, r, terminated, truncated, info = self.env.step(action)
+            reward += r
+            if terminated or truncated:
+                break
+
+        s = preprocess(s)
+        self.stacked_state = np.concatenate((self.stacked_state[1:], s[np.newaxis]), axis=0)
+
+        return self.stacked_state, reward, terminated, truncated, info
     
    

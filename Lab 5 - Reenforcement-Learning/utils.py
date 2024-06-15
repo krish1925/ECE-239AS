@@ -5,7 +5,6 @@ from IPython.display import HTML
 import os
 import cv2
 
-
 def animate(frames):
     # Create animation
     fig = plt.figure(figsize=(5, 5))

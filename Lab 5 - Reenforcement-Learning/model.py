@@ -24,10 +24,17 @@ class MLP(nn.Module):
         # self.linear1 = 
         # self.output = #output layer
         # self.non_linear = non_linear()
+        self.linear1 = nn.Linear(input_size, hidden_size)
+        self.output = nn.Linear(hidden_size, action_size)
+        self.non_linear = non_linear()
+
+
+
 
     def forward(self, x:torch.Tensor)->torch.Tensor:
-        #====== TODO: ======
-        raise NotImplementedError
+        x_ = self.non_linear(self.linear1(x))
+        return self.output(x_)
+    
 
 class Nature_Paper_Conv(nn.Module):
     """
@@ -53,10 +60,24 @@ class Nature_Paper_Conv(nn.Module):
         #     
         # ])
         # self.MLP =
+        self.CNN = nn.Sequential(
+            nn.Conv2d(input_size[0], 32, 8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, 4, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, 3, stride=1),
+            nn.ReLU()
+        
+
+        )
+        self.MLP = MLP(64*7*7, action_size, hidden_size=512)
+
+        
 
     def forward(self, x:torch.Tensor)->torch.Tensor:
-        #==== TODO: ====
-        raise NotImplementedError
+        x_ = self.CNN(x)
+        x_ = x_.view(x_.size(0), -1)  
+        return self.MLP(x_)
 
         
         
